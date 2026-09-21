@@ -1,0 +1,553 @@
+# ============================================================================
+#  AFIRMATIVE PILL — Schema GraphQL completo
+#
+#  ARCHIVO GENERADO. No editar a mano: se ensambla con `npm run schema` a partir de
+#  los módulos en src/server/schema/ (scalars.graphql, catalog.graphql, ordering.graphql, root.graphql).
+#
+#  Es el contrato único entre el cliente y el servidor. No existe ningún endpoint REST:
+#  todo el tráfico de la aplicación cursa por POST /graphql (y SSE para subscriptions).
+# ============================================================================
+
+# ============================================================================
+#  Scalars personalizados
+#  Afirmative Pill · el contrato valida en el borde, antes de tocar el dominio.
+# ============================================================================
+
+"""
+Instante en el tiempo en formato ISO-8601 con zona horaria (`2026-09-20T18:45:00.000Z`).
+Se usa `DateTime` y no `String` para que el cliente no tenga que adivinar el formato.
+"""
+scalar DateTime
+
+"""
+Fecha de calendario sin hora (`2026-09-14`). Usada en la fecha de expedición de una
+fórmula médica, donde la hora no aporta y la zona horaria induciría errores de un día.
+"""
+scalar Date
+
+"""
+Importe monetario en pesos colombianos (COP), sin decimales.
+Se serializa como número entero no negativo: 46000 significa $46.000 COP.
+Rechaza negativos y valores no finitos en tiempo de validación, no en el resolver.
+"""
+scalar Money
+
+"""
+Entero estrictamente mayor que cero. Usado en cantidades de un pedido: pedir
+"0 unidades" o "-2 unidades" es un error de contrato, no una regla de negocio.
+"""
+scalar PositiveInt
+
+"""
+Cadena con al menos un carácter visible. Impide que datos obligatorios de una receta
+(nombre del médico, número de registro) lleguen como `""` o `"   "`.
+"""
+scalar NonEmptyString
+
+"""
+URL absoluta con esquema `http` o `https`. Usada en el soporte digital de la fórmula médica.
+"""
+scalar URL
+
+# ============================================================================
+#  Bounded context: CATÁLOGO  (read side)
+#  Afirmative Pill · Escenario A — exploración eficiente de fármacos
+#
+#  Todo lo que hay aquí se sirve desde `medication_catalog_projection` y desde las
+#  tablas de referencia (laboratorios, principios activos, categorías). Ningún
+#  resolver de este módulo toca el modelo transaccional.
+# ============================================================================
+
+# ------------------------------------------------------------------ entidades
+
+"Laboratorio fabricante o titular del registro sanitario."
+type Laboratory {
+  id: ID!
+  name: String!
+  "Medicamentos de este laboratorio disponibles en la plataforma."
+  medications(first: Int = 10): [MedicationSummary!]!
+}
+
+"Principio activo (molécula) que da el efecto terapéutico."
+type ActiveIngredient {
+  id: ID!
+  name: String!
+}
+
+"Categoría terapéutica: la faceta principal de navegación del catálogo."
+type Category {
+  id: ID!
+  name: String!
+  slug: String!
+  "Cuántos medicamentos hay en la categoría. Alimenta los contadores de las facetas."
+  medicationCount: Int!
+}
+
+# ------------------------------------------------------------------ proyecciones
+
+"""
+Vista condensada de un medicamento: exactamente lo que necesita una tarjeta del
+listado y nada más. Es la mitad del argumento anti over-fetching — el cliente móvil
+nunca descarga indicaciones ni ficha clínica para pintar una grilla.
+"""
+type MedicationSummary {
+  id: ID!
+  sku: String!
+  name: String!
+  dosage: String!
+  presentation: String!
+  price: Money!
+  requiresPrescription: Boolean!
+  inStock: Boolean!
+
+  """
+  Categoría terapéutica. Es un resolver anidado y por lo tanto el caso de N+1 más
+  visible del sistema: pedir 20 medicamentos ejecuta este resolver 20 veces. Sin
+  DataLoader serían 20 consultas; con él, una sola con `id = any($1)`.
+  """
+  category: Category!
+}
+
+"""
+Ficha técnica completa. Los campos `activeIngredient`, `laboratory` y `category` son
+resolvers anidados: cada uno dispararía una consulta por medicamento (problema N+1) si
+no estuvieran agrupados por el DataLoader correspondiente.
+"""
+type Medication {
+  id: ID!
+  sku: String!
+  name: String!
+  dosage: String!
+  presentation: String!
+  price: Money!
+  stock: Int!
+  inStock: Boolean!
+  requiresPrescription: Boolean!
+  description: String!
+
+  activeIngredient: ActiveIngredient!
+  laboratory: Laboratory!
+  category: Category!
+
+  "Alternativas de la misma categoría terapéutica. Resolver anidado y también en lote."
+  relatedMedications(first: Int = 4): [MedicationSummary!]!
+}
+
+# ------------------------------------------------------------------ paginación
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type MedicationEdge {
+  cursor: String!
+  node: MedicationSummary!
+}
+
+type MedicationConnection {
+  edges: [MedicationEdge!]!
+  pageInfo: PageInfo!
+  "Total de coincidencias del filtro, no de la página. Alimenta '50 resultados'."
+  totalCount: Int!
+  "Facetas calculadas sobre el mismo filtro: permite pintar los contadores del sidebar."
+  facets: MedicationFacets!
+}
+
+type MedicationFacets {
+  categories: [CategoryFacet!]!
+  requiresPrescription: PrescriptionFacet!
+}
+
+type CategoryFacet {
+  category: Category!
+  count: Int!
+}
+
+type PrescriptionFacet {
+  "Medicamentos que exigen fórmula médica dentro del resultado actual."
+  withPrescription: Int!
+  "Medicamentos de venta libre (OTC) dentro del resultado actual."
+  overTheCounter: Int!
+}
+
+# ------------------------------------------------------------------ inputs
+
+enum MedicationSortField {
+  "Relevancia del motor de búsqueda de texto. Solo tiene sentido si hay término de búsqueda."
+  RELEVANCE
+  NAME
+  PRICE
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+input MedicationSort {
+  field: MedicationSortField! = RELEVANCE
+  direction: SortDirection! = ASC
+}
+
+"""
+Filtro facetado del catálogo. Todos los campos son opcionales y se combinan con AND.
+"""
+input MedicationFilter {
+  "Búsqueda de texto sobre nombre comercial, principio activo, categoría y laboratorio."
+  search: String
+  categoryIds: [ID!]
+  categorySlugs: [String!]
+  activeIngredientIds: [ID!]
+  laboratoryIds: [ID!]
+  "true = solo con fórmula médica, false = solo venta libre, null = ambos."
+  requiresPrescription: Boolean
+  "Excluye los agotados del resultado."
+  onlyInStock: Boolean
+  minPrice: Money
+  maxPrice: Money
+}
+
+# ============================================================================
+#  Bounded context: PEDIDOS  (write side + proyección de lectura)
+#  Afirmative Pill · Escenarios B y C
+#
+#  Las Mutations de este módulo son COMANDOS: expresan una intención de negocio
+#  ("adjuntar fórmula médica", "emitir pedido"), no un CRUD sobre filas.
+#  `OrderProjection` es el read model que las alimenta de vuelta.
+# ============================================================================
+
+# ------------------------------------------------------------------ enums de dominio
+
+"Estado operacional de un pedido."
+enum OrderStatus {
+  "Emitido y a la espera de validación farmacéutica."
+  PENDING_APPROVAL
+  "Validado: receta conforme e inventario reservado."
+  APPROVED
+  "Despachado al paciente."
+  DISPATCHED
+  "Anulado; el inventario reservado fue devuelto a bodega."
+  CANCELLED
+}
+
+"Estado de la fórmula médica que soporta un pedido."
+enum PrescriptionStatus {
+  "Ningún ítem del pedido exige fórmula médica."
+  NOT_REQUIRED
+  "Fórmula adjunta, pendiente de verificación por el químico farmacéutico."
+  PENDING_VALIDATION
+  VALIDATED
+  REJECTED
+}
+
+enum CartStatus {
+  OPEN
+  CHECKED_OUT
+  ABANDONED
+}
+
+"""
+Frescura de la proyección respecto del último comando aceptado.
+
+Es la respuesta explícita del contrato a la consistencia eventual: el cliente sabe
+si lo que está viendo ya incorporó su comando (`UP_TO_DATE`) o si el read model
+todavía se está poniendo al día (`SYNCING`), y puede decirlo en la UI en vez de
+mostrar un dato viejo como si fuera definitivo.
+"""
+enum ProjectionFreshness {
+  UP_TO_DATE
+  SYNCING
+}
+
+# ------------------------------------------------------------------ errores de comando
+
+"""
+Error de negocio devuelto DENTRO del payload, no como `GraphQLError` de transporte.
+
+Un medicamento agotado o una receta faltante no son fallos del servidor: son
+resultados válidos del comando que la UI debe saber pintar campo por campo. Por eso
+viajan tipados y acompañando al dato, no en el array `errors` del protocolo.
+"""
+interface CommandError {
+  "Código estable para que el cliente ramifique sin parsear mensajes."
+  code: String!
+  "Mensaje listo para mostrar al paciente, en español."
+  message: String!
+}
+
+"No hay unidades suficientes del medicamento en bodega."
+type OutOfStockError implements CommandError {
+  code: String!
+  message: String!
+  medicationId: ID!
+  medicationName: String!
+  requested: Int!
+  available: Int!
+}
+
+"El pedido incluye medicamentos de venta bajo fórmula y no se adjuntó la prescripción."
+type PrescriptionRequiredError implements CommandError {
+  code: String!
+  message: String!
+  "Los medicamentos concretos que obligan a adjuntar fórmula médica."
+  medications: [MedicationSummary!]!
+}
+
+"Un campo del input no cumple las reglas del dominio."
+type ValidationError implements CommandError {
+  code: String!
+  message: String!
+  "Ruta del campo ofensor, p. ej. `prescription.medicalLicense`."
+  field: String!
+}
+
+"El recurso referenciado por el comando no existe."
+type NotFoundError implements CommandError {
+  code: String!
+  message: String!
+  resource: String!
+  id: ID!
+}
+
+"El comando no es aplicable al estado actual del agregado."
+type InvalidStateError implements CommandError {
+  code: String!
+  message: String!
+  currentStatus: String!
+  attemptedTransition: String!
+}
+
+# ------------------------------------------------------------------ carrito (write model)
+
+type CartItem {
+  medication: MedicationSummary!
+  quantity: PositiveInt!
+  unitPrice: Money!
+  lineTotal: Money!
+}
+
+"""
+Borrador del pedido.
+
+Se sirve desde el modelo de escritura a propósito: el carrito es el borrador privado
+del propio paciente y exige *read-your-writes* — si agrego un medicamento tengo que
+verlo al instante. Proyectarlo introduciría una latencia que aquí no aporta nada.
+La decisión está documentada en `docs/cqrs.md`.
+"""
+type Cart {
+  id: ID!
+  patientId: ID!
+  status: CartStatus!
+  items: [CartItem!]!
+  subtotal: Money!
+  "true si algún ítem exige fórmula médica: la UI habilita el formulario de receta."
+  requiresPrescription: Boolean!
+  prescription: Prescription
+  updatedAt: DateTime!
+}
+
+type Prescription {
+  id: ID!
+  doctorName: String!
+  medicalLicense: String!
+  issuedAt: Date!
+  documentUrl: URL!
+  status: PrescriptionStatus!
+}
+
+# ------------------------------------------------------------------ pedido (read model)
+
+type OrderItemProjection {
+  medicationId: ID!
+  "Nombre congelado en el momento de la compra: si el catálogo cambia, la orden no miente."
+  name: String!
+  quantity: PositiveInt!
+  unitPrice: Money!
+  lineTotal: Money!
+  """
+  Ficha viva del medicamento. Resolver anidado que cruza el límite del agregado:
+  sin DataLoader, una orden de 8 ítems dispara 8 consultas al catálogo.
+  """
+  medication: MedicationSummary
+}
+
+"""
+Proyección de lectura del pedido (Escenario C). Desnormalizada: se resuelve con un
+único SELECT sobre `order_projection`, sin JOIN contra el modelo transaccional.
+"""
+type OrderProjection {
+  id: ID!
+  patientId: ID!
+  status: OrderStatus!
+  total: Money!
+  items: [OrderItemProjection!]!
+  requiresPrescription: Boolean!
+  prescriptionStatus: PrescriptionStatus!
+  cancellationReason: String
+  placedAt: DateTime!
+  updatedAt: DateTime!
+  "Ver `ProjectionFreshness`. La UI muestra 'validando…' mientras sea `SYNCING`."
+  freshness: ProjectionFreshness!
+  "Número de eventos de dominio ya aplicados a esta proyección."
+  version: Int!
+}
+
+# ------------------------------------------------------------------ inputs de comando
+
+input PrescriptionInput {
+  doctorName: NonEmptyString!
+  "Registro médico profesional que respalda la fórmula."
+  medicalLicense: NonEmptyString!
+  issuedAt: Date!
+  "Soporte digital de la fórmula (imagen o PDF)."
+  documentUrl: URL!
+}
+
+input AddMedicationToCartInput {
+  cartId: ID!
+  medicationId: ID!
+  quantity: PositiveInt!
+}
+
+input RemoveMedicationFromCartInput {
+  cartId: ID!
+  medicationId: ID!
+}
+
+input AttachPrescriptionInput {
+  cartId: ID!
+  prescription: PrescriptionInput!
+}
+
+input PlaceOrderInput {
+  cartId: ID!
+  """
+  Clave de idempotencia generada por el cliente. Dos envíos del mismo carrito con la
+  misma clave producen UNA orden: protege contra el doble clic y contra el reintento
+  de red, que en un medicamento controlado sería una doble dispensación.
+  """
+  idempotencyKey: NonEmptyString!
+}
+
+# ------------------------------------------------------------------ payloads
+
+type CartPayload {
+  cart: Cart
+  errors: [CommandError!]!
+}
+
+"""
+Resultado de emitir el pedido.
+
+Devuelve la proyección en estado `SYNCING`: el comando ya está confirmado en el write
+model, pero el read model puede no haberse actualizado todavía. El cliente puede pintar
+la orden de inmediato y esperar la confirmación por Subscription.
+"""
+type PlaceOrderPayload {
+  order: OrderProjection
+  errors: [CommandError!]!
+}
+
+type OrderPayload {
+  order: OrderProjection
+  errors: [CommandError!]!
+}
+
+# ============================================================================
+#  Raíz del schema · Afirmative Pill
+#
+#  La segregación CQRS es visible desde el propio contrato:
+#    · Query        -> read model  (proyecciones)
+#    · Mutation     -> write model (comandos de dominio)
+#    · Subscription -> notificación de que la proyección alcanzó al comando
+# ============================================================================
+
+type Query {
+  # ---------------------------------------------------------- catálogo (Escenario A)
+
+  """
+  Listado facetado del catálogo. Devuelve `MedicationSummary`: la vista condensada.
+  Para la ficha clínica completa está `medication(id:)`.
+  """
+  medications(
+    filter: MedicationFilter
+    sort: MedicationSort
+    first: Int = 20
+    after: String
+  ): MedicationConnection!
+
+  "Ficha técnica completa de un medicamento."
+  medication(id: ID!): Medication
+
+  "Facetas de navegación del catálogo."
+  categories: [Category!]!
+  laboratories: [Laboratory!]!
+
+  # ---------------------------------------------------------- pedidos (Escenario C)
+
+  "Proyección de un pedido: costo total, ítems y estado operacional."
+  order(id: ID!): OrderProjection
+
+  "Historial del paciente, del más reciente al más antiguo."
+  orders(patientId: ID!, first: Int = 20): [OrderProjection!]!
+
+  """
+  Carrito en curso. Excepción deliberada y documentada a la regla de leer solo
+  proyecciones: el borrador propio exige read-your-writes (ver `Cart`).
+  """
+  cart(id: ID!): Cart
+}
+
+type Mutation {
+  # ---------------------------------------------------------- comandos de carrito
+
+  "Abre un carrito para el paciente."
+  createCart(patientId: ID!): CartPayload!
+
+  "Agrega unidades de un medicamento. Si ya estaba, acumula la cantidad."
+  addMedicationToCart(input: AddMedicationToCartInput!): CartPayload!
+
+  "Retira por completo un medicamento del carrito."
+  removeMedicationFromCart(input: RemoveMedicationFromCartInput!): CartPayload!
+
+  """
+  Adjunta la fórmula médica que respalda los ítems de venta controlada.
+  Es un comando propio y no un campo más de `placeOrder` porque en el negocio es un
+  acto distinto: el paciente sube la receta antes y a veces mucho antes de pagar.
+  """
+  attachPrescriptionToCart(input: AttachPrescriptionInput!): CartPayload!
+
+  # ---------------------------------------------------------- comando de compra
+
+  """
+  Emite el pedido. Comando transaccional que, en una sola transacción:
+    1. valida que toda fórmula médica requerida esté adjunta,
+    2. valida y descuenta el stock de forma atómica,
+    3. crea la orden con sus ítems y reservas,
+    4. registra el evento `OrderPlaced` en el outbox.
+  Si cualquier invariante falla, no se escribe nada y el error vuelve tipado en `errors`.
+  """
+  placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
+
+  # ---------------------------------------------------------- comandos de back-office
+
+  "Validación farmacéutica conforme: la orden pasa a APPROVED."
+  approveOrder(orderId: ID!): OrderPayload!
+
+  "Salida de bodega: la orden pasa a DISPATCHED."
+  dispatchOrder(orderId: ID!): OrderPayload!
+
+  "Anula la orden y devuelve a bodega el inventario reservado."
+  cancelOrder(orderId: ID!, reason: NonEmptyString!): OrderPayload!
+}
+
+type Subscription {
+  """
+  Emite la proyección del pedido cada vez que el projector la actualiza.
+
+  Se dispara cuando el read model queda consistente, nunca antes: el evento que llega
+  al cliente es la prueba de que la consistencia eventual ya se resolvió.
+  """
+  orderStatusChanged(orderId: ID!): OrderProjection!
+}

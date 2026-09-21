@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/**
+ * Sistema visual de Afirmative Pill.
+ *
+ * Dirección de diseño: trust-first clínico-editorial. Es un comercio de medicamentos
+ * bajo regulación sanitaria — la legibilidad de la información clínica y la claridad de
+ * qué exige fórmula médica mandan sobre cualquier efecto visual. Paleta sobria, un solo
+ * azul de marca, contraste alto y nada de gradientes decorativos.
+ *
+ * El ámbar de `--color-rx` está reservado EXCLUSIVAMENTE para "requiere fórmula médica".
+ * No se usa para nada más: cuando el paciente ve ese color, significa una sola cosa.
+ */
+
+@theme {
+  --color-brand: #1554e8;
+  --color-brand-dark: #0d3bb0;
+  --color-brand-soft: #eaf0ff;
+
+  --color-ink: #0b1b2b;
+  --color-ink-soft: #40536b;
+  --color-muted: #6b7d92;
+
+  --color-canvas: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-line: #dfe6ef;
+
+  --color-rx: #9a4a07;
+  --color-rx-soft: #fdf2e6;
+
+  --color-ok: #06714a;
+  --color-ok-soft: #e7f6ef;
+
+  --color-danger: #a8231b;
+  --color-danger-soft: #fdecea;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visible y consistente: requisito de accesibilidad, no decoración. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@keyframes pulse-sync {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.animate-sync {
+  animation: pulse-sync 1.4s ease-in-out infinite;
+}

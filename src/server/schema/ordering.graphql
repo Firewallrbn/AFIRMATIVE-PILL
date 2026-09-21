@@ -1,0 +1,245 @@
+# ============================================================================
+#  Bounded context: PEDIDOS  (write side + proyección de lectura)
+#  Afirmative Pill · Escenarios B y C
+#
+#  Las Mutations de este módulo son COMANDOS: expresan una intención de negocio
+#  ("adjuntar fórmula médica", "emitir pedido"), no un CRUD sobre filas.
+#  `OrderProjection` es el read model que las alimenta de vuelta.
+# ============================================================================
+
+# ------------------------------------------------------------------ enums de dominio
+
+"Estado operacional de un pedido."
+enum OrderStatus {
+  "Emitido y a la espera de validación farmacéutica."
+  PENDING_APPROVAL
+  "Validado: receta conforme e inventario reservado."
+  APPROVED
+  "Despachado al paciente."
+  DISPATCHED
+  "Anulado; el inventario reservado fue devuelto a bodega."
+  CANCELLED
+}
+
+"Estado de la fórmula médica que soporta un pedido."
+enum PrescriptionStatus {
+  "Ningún ítem del pedido exige fórmula médica."
+  NOT_REQUIRED
+  "Fórmula adjunta, pendiente de verificación por el químico farmacéutico."
+  PENDING_VALIDATION
+  VALIDATED
+  REJECTED
+}
+
+enum CartStatus {
+  OPEN
+  CHECKED_OUT
+  ABANDONED
+}
+
+"""
+Frescura de la proyección respecto del último comando aceptado.
+
+Es la respuesta explícita del contrato a la consistencia eventual: el cliente sabe
+si lo que está viendo ya incorporó su comando (`UP_TO_DATE`) o si el read model
+todavía se está poniendo al día (`SYNCING`), y puede decirlo en la UI en vez de
+mostrar un dato viejo como si fuera definitivo.
+"""
+enum ProjectionFreshness {
+  UP_TO_DATE
+  SYNCING
+}
+
+# ------------------------------------------------------------------ errores de comando
+
+"""
+Error de negocio devuelto DENTRO del payload, no como `GraphQLError` de transporte.
+
+Un medicamento agotado o una receta faltante no son fallos del servidor: son
+resultados válidos del comando que la UI debe saber pintar campo por campo. Por eso
+viajan tipados y acompañando al dato, no en el array `errors` del protocolo.
+"""
+interface CommandError {
+  "Código estable para que el cliente ramifique sin parsear mensajes."
+  code: String!
+  "Mensaje listo para mostrar al paciente, en español."
+  message: String!
+}
+
+"No hay unidades suficientes del medicamento en bodega."
+type OutOfStockError implements CommandError {
+  code: String!
+  message: String!
+  medicationId: ID!
+  medicationName: String!
+  requested: Int!
+  available: Int!
+}
+
+"El pedido incluye medicamentos de venta bajo fórmula y no se adjuntó la prescripción."
+type PrescriptionRequiredError implements CommandError {
+  code: String!
+  message: String!
+  "Los medicamentos concretos que obligan a adjuntar fórmula médica."
+  medications: [MedicationSummary!]!
+}
+
+"Un campo del input no cumple las reglas del dominio."
+type ValidationError implements CommandError {
+  code: String!
+  message: String!
+  "Ruta del campo ofensor, p. ej. `prescription.medicalLicense`."
+  field: String!
+}
+
+"El recurso referenciado por el comando no existe."
+type NotFoundError implements CommandError {
+  code: String!
+  message: String!
+  resource: String!
+  id: ID!
+}
+
+"El comando no es aplicable al estado actual del agregado."
+type InvalidStateError implements CommandError {
+  code: String!
+  message: String!
+  currentStatus: String!
+  attemptedTransition: String!
+}
+
+# ------------------------------------------------------------------ carrito (write model)
+
+type CartItem {
+  medication: MedicationSummary!
+  quantity: PositiveInt!
+  unitPrice: Money!
+  lineTotal: Money!
+}
+
+"""
+Borrador del pedido.
+
+Se sirve desde el modelo de escritura a propósito: el carrito es el borrador privado
+del propio paciente y exige *read-your-writes* — si agrego un medicamento tengo que
+verlo al instante. Proyectarlo introduciría una latencia que aquí no aporta nada.
+La decisión está documentada en `docs/cqrs.md`.
+"""
+type Cart {
+  id: ID!
+  patientId: ID!
+  status: CartStatus!
+  items: [CartItem!]!
+  subtotal: Money!
+  "true si algún ítem exige fórmula médica: la UI habilita el formulario de receta."
+  requiresPrescription: Boolean!
+  prescription: Prescription
+  updatedAt: DateTime!
+}
+
+type Prescription {
+  id: ID!
+  doctorName: String!
+  medicalLicense: String!
+  issuedAt: Date!
+  documentUrl: URL!
+  status: PrescriptionStatus!
+}
+
+# ------------------------------------------------------------------ pedido (read model)
+
+type OrderItemProjection {
+  medicationId: ID!
+  "Nombre congelado en el momento de la compra: si el catálogo cambia, la orden no miente."
+  name: String!
+  quantity: PositiveInt!
+  unitPrice: Money!
+  lineTotal: Money!
+  """
+  Ficha viva del medicamento. Resolver anidado que cruza el límite del agregado:
+  sin DataLoader, una orden de 8 ítems dispara 8 consultas al catálogo.
+  """
+  medication: MedicationSummary
+}
+
+"""
+Proyección de lectura del pedido (Escenario C). Desnormalizada: se resuelve con un
+único SELECT sobre `order_projection`, sin JOIN contra el modelo transaccional.
+"""
+type OrderProjection {
+  id: ID!
+  patientId: ID!
+  status: OrderStatus!
+  total: Money!
+  items: [OrderItemProjection!]!
+  requiresPrescription: Boolean!
+  prescriptionStatus: PrescriptionStatus!
+  cancellationReason: String
+  placedAt: DateTime!
+  updatedAt: DateTime!
+  "Ver `ProjectionFreshness`. La UI muestra 'validando…' mientras sea `SYNCING`."
+  freshness: ProjectionFreshness!
+  "Número de eventos de dominio ya aplicados a esta proyección."
+  version: Int!
+}
+
+# ------------------------------------------------------------------ inputs de comando
+
+input PrescriptionInput {
+  doctorName: NonEmptyString!
+  "Registro médico profesional que respalda la fórmula."
+  medicalLicense: NonEmptyString!
+  issuedAt: Date!
+  "Soporte digital de la fórmula (imagen o PDF)."
+  documentUrl: URL!
+}
+
+input AddMedicationToCartInput {
+  cartId: ID!
+  medicationId: ID!
+  quantity: PositiveInt!
+}
+
+input RemoveMedicationFromCartInput {
+  cartId: ID!
+  medicationId: ID!
+}
+
+input AttachPrescriptionInput {
+  cartId: ID!
+  prescription: PrescriptionInput!
+}
+
+input PlaceOrderInput {
+  cartId: ID!
+  """
+  Clave de idempotencia generada por el cliente. Dos envíos del mismo carrito con la
+  misma clave producen UNA orden: protege contra el doble clic y contra el reintento
+  de red, que en un medicamento controlado sería una doble dispensación.
+  """
+  idempotencyKey: NonEmptyString!
+}
+
+# ------------------------------------------------------------------ payloads
+
+type CartPayload {
+  cart: Cart
+  errors: [CommandError!]!
+}
+
+"""
+Resultado de emitir el pedido.
+
+Devuelve la proyección en estado `SYNCING`: el comando ya está confirmado en el write
+model, pero el read model puede no haberse actualizado todavía. El cliente puede pintar
+la orden de inmediato y esperar la confirmación por Subscription.
+"""
+type PlaceOrderPayload {
+  order: OrderProjection
+  errors: [CommandError!]!
+}
+
+type OrderPayload {
+  order: OrderProjection
+  errors: [CommandError!]!
+}

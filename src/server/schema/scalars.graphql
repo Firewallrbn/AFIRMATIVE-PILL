@@ -1,0 +1,40 @@
+# ============================================================================
+#  Scalars personalizados
+#  Afirmative Pill · el contrato valida en el borde, antes de tocar el dominio.
+# ============================================================================
+
+"""
+Instante en el tiempo en formato ISO-8601 con zona horaria (`2026-09-20T18:45:00.000Z`).
+Se usa `DateTime` y no `String` para que el cliente no tenga que adivinar el formato.
+"""
+scalar DateTime
+
+"""
+Fecha de calendario sin hora (`2026-09-14`). Usada en la fecha de expedición de una
+fórmula médica, donde la hora no aporta y la zona horaria induciría errores de un día.
+"""
+scalar Date
+
+"""
+Importe monetario en pesos colombianos (COP), sin decimales.
+Se serializa como número entero no negativo: 46000 significa $46.000 COP.
+Rechaza negativos y valores no finitos en tiempo de validación, no en el resolver.
+"""
+scalar Money
+
+"""
+Entero estrictamente mayor que cero. Usado en cantidades de un pedido: pedir
+"0 unidades" o "-2 unidades" es un error de contrato, no una regla de negocio.
+"""
+scalar PositiveInt
+
+"""
+Cadena con al menos un carácter visible. Impide que datos obligatorios de una receta
+(nombre del médico, número de registro) lleguen como `""` o `"   "`.
+"""
+scalar NonEmptyString
+
+"""
+URL absoluta con esquema `http` o `https`. Usada en el soporte digital de la fórmula médica.
+"""
+scalar URL

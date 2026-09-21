@@ -1,0 +1,97 @@
+# ============================================================================
+#  Raíz del schema · Afirmative Pill
+#
+#  La segregación CQRS es visible desde el propio contrato:
+#    · Query        -> read model  (proyecciones)
+#    · Mutation     -> write model (comandos de dominio)
+#    · Subscription -> notificación de que la proyección alcanzó al comando
+# ============================================================================
+
+type Query {
+  # ---------------------------------------------------------- catálogo (Escenario A)
+
+  """
+  Listado facetado del catálogo. Devuelve `MedicationSummary`: la vista condensada.
+  Para la ficha clínica completa está `medication(id:)`.
+  """
+  medications(
+    filter: MedicationFilter
+    sort: MedicationSort
+    first: Int = 20
+    after: String
+  ): MedicationConnection!
+
+  "Ficha técnica completa de un medicamento."
+  medication(id: ID!): Medication
+
+  "Facetas de navegación del catálogo."
+  categories: [Category!]!
+  laboratories: [Laboratory!]!
+
+  # ---------------------------------------------------------- pedidos (Escenario C)
+
+  "Proyección de un pedido: costo total, ítems y estado operacional."
+  order(id: ID!): OrderProjection
+
+  "Historial del paciente, del más reciente al más antiguo."
+  orders(patientId: ID!, first: Int = 20): [OrderProjection!]!
+
+  """
+  Carrito en curso. Excepción deliberada y documentada a la regla de leer solo
+  proyecciones: el borrador propio exige read-your-writes (ver `Cart`).
+  """
+  cart(id: ID!): Cart
+}
+
+type Mutation {
+  # ---------------------------------------------------------- comandos de carrito
+
+  "Abre un carrito para el paciente."
+  createCart(patientId: ID!): CartPayload!
+
+  "Agrega unidades de un medicamento. Si ya estaba, acumula la cantidad."
+  addMedicationToCart(input: AddMedicationToCartInput!): CartPayload!
+
+  "Retira por completo un medicamento del carrito."
+  removeMedicationFromCart(input: RemoveMedicationFromCartInput!): CartPayload!
+
+  """
+  Adjunta la fórmula médica que respalda los ítems de venta controlada.
+  Es un comando propio y no un campo más de `placeOrder` porque en el negocio es un
+  acto distinto: el paciente sube la receta antes y a veces mucho antes de pagar.
+  """
+  attachPrescriptionToCart(input: AttachPrescriptionInput!): CartPayload!
+
+  # ---------------------------------------------------------- comando de compra
+
+  """
+  Emite el pedido. Comando transaccional que, en una sola transacción:
+    1. valida que toda fórmula médica requerida esté adjunta,
+    2. valida y descuenta el stock de forma atómica,
+    3. crea la orden con sus ítems y reservas,
+    4. registra el evento `OrderPlaced` en el outbox.
+  Si cualquier invariante falla, no se escribe nada y el error vuelve tipado en `errors`.
+  """
+  placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
+
+  # ---------------------------------------------------------- comandos de back-office
+
+  "Validación farmacéutica conforme: la orden pasa a APPROVED."
+  approveOrder(orderId: ID!): OrderPayload!
+
+  "Salida de bodega: la orden pasa a DISPATCHED."
+  dispatchOrder(orderId: ID!): OrderPayload!
+
+  "Anula la orden y devuelve a bodega el inventario reservado."
+  cancelOrder(orderId: ID!, reason: NonEmptyString!): OrderPayload!
+}
+
+type Subscription {
+  """
+  Emite la proyección del pedido cada vez que el projector la actualiza.
+
+  Se dispara cuando el read model queda consistente, nunca antes: el evento que llega
+  al cliente es la prueba de que la consistencia eventual ya se resolvió.
+  """
+  orderStatusChanged(orderId: ID!): OrderProjection!
+}

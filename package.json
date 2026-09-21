@@ -1,0 +1,50 @@
+{
+  "name": "afirmative-pill",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "schema": "node scripts/build-schema.mjs",
+    "predev": "node scripts/build-schema.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/build-schema.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:setup": "tsx scripts/db-setup.mts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.3.1",
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/next": "^4.1.0",
+    "@graphql-tools/schema": "^10.1.1",
+    "@vercel/functions": "^3.9.8",
+    "dataloader": "^2.2.3",
+    "graphql": "^16.14.2",
+    "graphql-scalars": "^2.0.0",
+    "graphql-sse": "^2.6.1",
+    "next": "16.3.5",
+    "pino": "^10.3.1",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vercel/config": "^0.7.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "pino-pretty": "^13.1.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  },
+  "description": "E-commerce farmacéutico con GraphQL + CQRS sobre Apollo, Next.js y Supabase."
+}
