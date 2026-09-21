@@ -463,9 +463,9 @@ Con eso listo se ejecuta **F0** (andamiaje Next.js + `/graphql`) y **F1** (migra
 | **F4 — Write side** | ✅ verificado | Comandos de carrito, receta, `placeOrder` transaccional, y ciclo de vida (approve/dispatch/cancel); 15 pruebas de invariantes en verde |
 | **F5 — Projector + Subscriptions** | ✅ verificado | Outbox con `for update skip locked`, `waitUntil`, `LISTEN/NOTIFY` y subscription por SSE |
 | **F6 — Frontend** | ✅ verificado | ApolloProvider en `layout.tsx`, 5 pantallas, `useQuery`/`useMutation`/`useSubscription`, `fetchMore` paginado y `update()` de caché en `placeOrder` |
-| **F7 — Despliegue** | ⏳ | Falta cargar env en Vercel y desplegar |
-| **F8 — Documentación** | ⏳ | Falta README con diagrama y `docs/cqrs.md` |
-| **F9 — Evidencias y video** | ⏳ | Pendiente |
+| **F7 — Despliegue** | ✅ verificado | Producción en Vercel respondiendo los 50 medicamentos por `/graphql` |
+| **F8 — Documentación** | ✅ | README con diagrama Mermaid, `docs/cqrs.md`, `docs/ENUNCIADO.md` |
+| **F9 — Evidencias y video** | ✅ guion | `docs/evidencias/guion-video.md` cronometrado a 7 min — falta grabar |
 
 ### Verificación contra la base real (2026-09-20, `npm run dev` + `node scripts/e2e-flow.mjs`)
 
@@ -514,5 +514,31 @@ Con eso listo se ejecuta **F0** (andamiaje Next.js + `/graphql`) y **F1** (migra
    sustentarlo así, no "arreglarlo".
 2. **`LISTEN/NOTIFY` sin verificar** contra Supabase: la conexión del listener usa `DIRECT_URL`.
    Hay que probarlo en F5 antes de grabar el video.
-3. **Sin `docs/cqrs.md` ni README todavía**: se escriben después de verificar de punta a punta,
-   para que los números de N+1 del README salgan de logs reales y no de una estimación.
+3. ~~Sin `docs/cqrs.md` ni README~~ → hechos, con los números de N+1 tomados de logs reales.
+
+---
+
+## 15. Cierre — 2026-09-20
+
+**Commit inicial**: `e011061`, 85 archivos, 19.461 líneas. Árbol limpio.
+
+**Producción**: desplegada en Vercel y verificada — `POST /graphql` devuelve los 50
+medicamentos con sus categorías resueltas por DataLoader.
+
+### Incidente durante el despliegue
+
+El primer deploy falló con `password authentication failed for user "postgres"`. Causa: en
+el dashboard se habían pegado las cadenas de **conexión directa** en vez de las del pooler.
+El pooler exige el usuario con el project-ref (`postgres.wcmiyijouostqxrusqrd`), no
+`postgres` a secas. Se reemplazaron las variables de producción por las mismas que ya
+estaban verificadas en local y el redeploy quedó correcto.
+
+### Pendientes que requieren decisión del usuario
+
+1. **Deployment Protection (SSO) activa**: la URL de producción pide login de Vercel. Para
+   que el docente pueda abrir el enlace hay que desactivarla en
+   Settings ▸ Deployment Protection. Es una decisión de exposición pública, no técnica.
+2. **Push a GitHub**: el commit está local. El remoto `Firewallrbn/AFIRMATIVE-PILL` está
+   conectado a Vercel, así que el push disparará un deploy de producción automático.
+3. **Créditos**: definir si el trabajo es individual o en grupo, para el README y el video.
+4. **Grabar el video** siguiendo `docs/evidencias/guion-video.md`.

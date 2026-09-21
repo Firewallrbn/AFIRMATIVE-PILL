@@ -9,6 +9,12 @@ impone dos reglas que el sistema no puede romper nunca — no se despacha un med
 control sin fórmula médica verificada, y no se vende inventario que no existe. Toda la
 arquitectura de este repositorio está ordenada alrededor de esas dos invariantes.
 
+| | |
+|---|---|
+| **Aplicación en vivo** | https://afirmative-pill.vercel.app |
+| **Endpoint GraphQL** | https://afirmative-pill.vercel.app/graphql |
+| **Repositorio** | https://github.com/Firewallrbn/AFIRMATIVE-PILL |
+
 ---
 
 ## Tabla de contenido
