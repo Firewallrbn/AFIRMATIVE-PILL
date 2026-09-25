@@ -22,6 +22,17 @@ arquitectura de este repositorio está ordenada alrededor de esas dos invariante
 | **Endpoint GraphQL** | https://afirmative-pill.vercel.app/graphql |
 | **Repositorio** | https://github.com/Firewallrbn/AFIRMATIVE-PILL |
 
+### Capturas
+
+**Inicio** — la portada presenta la farmacia y lleva al catálogo o al seguimiento de un pedido.
+
+![Página de inicio de Afirmative Pill](docs/capturas/inicio.png)
+
+**Catálogo** — vista condensada (nombre, presentación, categoría y precio) con búsqueda,
+filtro por fórmula médica y facetas por categoría terapéutica con su conteo.
+
+![Catálogo de medicamentos con filtros](docs/capturas/catalogo.png)
+
 ---
 
 ## Tabla de contenido
@@ -525,7 +536,7 @@ pestaña *Transaction pooler* (6543) y `DIRECT_URL` de *Session pooler* (5432).
 npm run db:setup
 ```
 
-Aplica las 7 migraciones de `db/migrations/` en orden y carga los 50 medicamentos. Es
+Aplica las 5 migraciones de `db/migrations/` en orden y carga los 50 medicamentos. Es
 idempotente: se puede volver a correr sobre una base ya inicializada.
 
 ### 4. Levantar
@@ -627,11 +638,12 @@ Con `LOG_LEVEL=debug`, cada lote y cada operación quedan en la consola del serv
 AFIRMATIVE-PILL/
 ├── schema.graphql                  ← contrato completo (generado)
 ├── db/
-│   ├── migrations/                 ← 7 migraciones versionadas
+│   ├── migrations/                 ← 5 migraciones versionadas
 │   └── seed/                       ← dataset de 50 medicamentos
 ├── docs/
 │   ├── ENUNCIADO.md                ← enunciado del taller
 │   ├── PLAN.md                     ← plan de trabajo y bitácora de decisiones
+│   ├── capturas/                   ← capturas de la aplicación
 │   └── cqrs.md                     ← comandos, eventos, proyecciones
 ├── scripts/
 │   ├── build-schema.mjs            ← ensambla el SDL
