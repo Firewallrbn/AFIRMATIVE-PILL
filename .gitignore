@@ -61,3 +61,6 @@ src/server/schema/typeDefs.generated.ts
 /.claude/skills/
 # Permisos locales de Claude Code (propios de cada máquina)
 /.claude/settings.local.json
+
+# Guion del video de sustentación (material personal, no se publica)
+/docs/evidencias/guion-video.md

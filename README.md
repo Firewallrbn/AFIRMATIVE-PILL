@@ -632,8 +632,7 @@ AFIRMATIVE-PILL/
 ├── docs/
 │   ├── ENUNCIADO.md                ← enunciado del taller
 │   ├── PLAN.md                     ← plan de trabajo y bitácora de decisiones
-│   ├── cqrs.md                     ← comandos, eventos, proyecciones
-│   └── evidencias/                 ← guion de la sustentación
+│   └── cqrs.md                     ← comandos, eventos, proyecciones
 ├── scripts/
 │   ├── build-schema.mjs            ← ensambla el SDL
 │   ├── db-setup.mts                ← migraciones + seed
