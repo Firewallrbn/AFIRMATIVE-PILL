@@ -23,14 +23,14 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="es" className={`${geistSans.variable} h-full`}>
+    <html lang="es" className={`${geistSans.variable} h-full`} suppressHydrationWarning>
       {/*
-        `suppressHydrationWarning` acotado al <body>: varias extensiones de navegador
-        (ColorZilla, gestores de contraseñas, traductores) inyectan atributos como
-        `cz-shortcut-listen` en el body ANTES de que React hidrate, y eso dispara un
-        error de hidratación que no viene de nuestro código y que no podemos evitar.
-        Solo silencia los atributos de este nodo: cualquier desajuste real dentro del
-        árbol se sigue reportando.
+        `suppressHydrationWarning` acotado a <html> y <body>: varias extensiones de
+        navegador (ColorZilla, QuillBot, gestores de contraseñas, traductores) inyectan
+        atributos como `cz-shortcut-listen` o `data-qb-installed` en esos nodos ANTES de
+        que React hidrate, y eso dispara un error de hidratación que no viene de nuestro
+        código y que no podemos evitar. Solo silencia los atributos de estos dos nodos:
+        cualquier desajuste real dentro del árbol se sigue reportando.
       */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <ApolloWrapper>
