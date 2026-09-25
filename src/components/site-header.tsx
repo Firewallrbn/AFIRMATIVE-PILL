@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
+import { BrandMark } from '@/components/brand-mark';
 
 const NAV = [
   { href: '/', label: 'Catálogo' },
@@ -12,23 +13,9 @@ const NAV = [
 function Logo() {
   return (
     <span className="flex items-center gap-2.5">
-      {/* Cápsula partida: mitad sólida, mitad contorno. La cruz sanitaria está
-          implícita en el cruce de los dos cuerpos, sin recurrir al cliché del ícono. */}
-      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-        <rect x="2" y="9" width="17" height="12" rx="6" fill="var(--color-brand)" />
-        <rect
-          x="11"
-          y="9"
-          width="17"
-          height="12"
-          rx="6"
-          fill="none"
-          stroke="var(--color-brand-dark)"
-          strokeWidth="2.2"
-        />
-      </svg>
-      <span className="text-[19px] font-bold tracking-tight text-ink">
-        Afirmative<span className="text-brand"> Pill</span>
+      <BrandMark size={32} />
+      <span className="text-[19px] font-semibold tracking-[-0.02em] text-ink">
+        Afirmative <span className="font-bold text-brand">Pill</span>
       </span>
     </span>
   );
