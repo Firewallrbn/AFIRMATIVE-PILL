@@ -1,7 +1,7 @@
 # PLAN DE TRABAJO — Afirmative Pill
 
 Plan de implementación para el taller *"Arquitectura de Software Basada en GraphQL y CQRS para E-Commerce
-Farmacéutico"*. El enunciado íntegro está registrado en [`docs/ENUNCIADO.md`](docs/ENUNCIADO.md); este documento
+Farmacéutico"*. El enunciado íntegro está registrado en [`docs/ENUNCIADO.md`](ENUNCIADO.md); este documento
 define **cómo** lo vamos a resolver.
 
 - **Fecha de creación del plan**: 2026-09-20
@@ -64,7 +64,7 @@ define **cómo** lo vamos a resolver.
 ```
 AFIRMATIVE-PILL/
 ├── README.md                     # entregable principal (diagrama, SDL, justificación CQRS/N+1)
-├── PLAN.md                       # este documento
+├── docs/PLAN.md                  # este documento
 ├── vercel.ts                     # configuración del proyecto (framework, headers, runtime)
 ├── .mcp.json                     # MCP de Supabase (ya creado)
 ├── docs/

@@ -1,3 +1,10 @@
+[![Estado: Completado](https://img.shields.io/badge/Estado-Completado-success.svg)](#)
+[![Patrón: CQRS](https://img.shields.io/badge/Patr%C3%B3n-CQRS-6f42c1.svg)](#cómo-se-aplicó-cqrs)
+[![API: GraphQL (Apollo)](https://img.shields.io/badge/API-GraphQL_%2B_Apollo-E10098.svg)](#schema-graphql)
+[![Framework: Next.js](https://img.shields.io/badge/Framework-Next.js_16-000000.svg)](#stack)
+[![Datos: Supabase](https://img.shields.io/badge/Datos-Supabase_PostgreSQL-3ECF8E.svg)](#modelo-de-datos)
+[![Deploy: Vercel](https://img.shields.io/badge/Deploy-Vercel-000000.svg)](https://afirmative-pill.vercel.app)
+
 # Afirmative Pill
 
 E-commerce farmacéutico construido sobre **GraphQL + CQRS**, con Apollo Server, Next.js y
@@ -624,6 +631,7 @@ AFIRMATIVE-PILL/
 │   └── seed/                       ← dataset de 50 medicamentos
 ├── docs/
 │   ├── ENUNCIADO.md                ← enunciado del taller
+│   ├── PLAN.md                     ← plan de trabajo y bitácora de decisiones
 │   ├── cqrs.md                     ← comandos, eventos, proyecciones
 │   └── evidencias/                 ← guion de la sustentación
 ├── scripts/

@@ -24,7 +24,17 @@
 .DS_Store
 *.pem
 
+# Windows / OneDrive
+Thumbs.db
+Desktop.ini
+~$*
+
+# editores
+.vscode/
+.idea/
+
 # debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -49,3 +59,5 @@ src/server/schema/typeDefs.generated.ts
 # no del proyecto). Se reinstalan con skills-lock.json, que sí se versiona.
 /.agents/skills/
 /.claude/skills/
+# Permisos locales de Claude Code (propios de cada máquina)
+/.claude/settings.local.json
