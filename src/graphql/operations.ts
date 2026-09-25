@@ -8,7 +8,7 @@ import { gql } from '@apollo/client';
  * Todas las operaciones de la aplicación viven acá, en un solo lugar, para que se pueda
  * auditar de un vistazo qué le pide el frontend al servidor.
  *
- * Fijate en el contraste entre `CatalogMedications` y `MedicationDetail`: la grilla pide
+ * Fíjate en el contraste entre `CatalogMedications` y `MedicationDetail`: la grilla pide
  * 7 campos por medicamento; la ficha pide la descripción, el laboratorio, el principio
  * activo y las alternativas. Es el mismo endpoint y el mismo tipo, pero el listado NUNCA
  * descarga la ficha clínica. Eso es exactamente lo que se va a mostrar en la pestaña

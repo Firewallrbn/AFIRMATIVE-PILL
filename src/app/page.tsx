@@ -45,7 +45,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-white/80">
-            Buscá entre medicamentos de venta libre y de control especial. Nosotros
+            Busca entre medicamentos de venta libre y con fórmula médica. Nosotros
             verificamos tu fórmula médica, reservamos el inventario y te mostramos cada
             cambio del pedido en el momento en que ocurre.
           </p>

@@ -14,7 +14,7 @@ import {
  * Corren sin base de datos, sin GraphQL y sin servidor: las reglas viven en un módulo
  * puro y eso es justamente lo que las hace verificables. Si alguna de estas pruebas se
  * pone en rojo, el sistema está en condiciones de vender un medicamento que no existe o
- * de despachar un controlado sin receta.
+ * de entregar un medicamento con fórmula médica sin receta.
  */
 
 const OTC: OrderLine = {
@@ -47,7 +47,7 @@ describe('INVARIANTE 1 — control de prescripción', () => {
     expect(checkPrescription([OTC], null)).toBeNull();
   });
 
-  it('bloquea el pedido si hay un controlado y no hay fórmula adjunta', () => {
+  it('bloquea el pedido si hay un medicamento con fórmula y no hay fórmula adjunta', () => {
     const error = checkPrescription([OTC, CONTROLADO], null);
     expect(error?.code).toBe('PRESCRIPTION_REQUIRED');
   });
@@ -115,7 +115,7 @@ describe('ciclo de vida de la orden', () => {
 });
 
 describe('detección de pedido con fórmula', () => {
-  it('basta un controlado para marcar todo el pedido', () => {
+  it('basta un medicamento con fórmula para marcar todo el pedido', () => {
     expect(requiresPrescription([OTC, CONTROLADO])).toBe(true);
     expect(requiresPrescription([OTC])).toBe(false);
   });

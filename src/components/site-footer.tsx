@@ -7,7 +7,7 @@ export function SiteFooter() {
           <span className="hidden sm:inline"> Los datos clínicos son de demostración.</span>
         </p>
         <p className="font-medium text-ink-soft">
-          Todo el tráfico de esta aplicación cursa por <code className="font-mono">/graphql</code>
+          Toda la comunicación con el servidor pasa por <code className="font-mono">/graphql</code>
         </p>
       </div>
     </footer>

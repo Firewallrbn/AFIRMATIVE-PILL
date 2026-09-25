@@ -77,8 +77,8 @@ export const prescriptionRequired = (medicationIds: string[]): PrescriptionRequi
   code: 'PRESCRIPTION_REQUIRED',
   message:
     medicationIds.length === 1
-      ? 'Uno de los medicamentos del pedido es de venta bajo fórmula médica. Adjuntá la prescripción antes de continuar.'
-      : `${medicationIds.length} medicamentos del pedido son de venta bajo fórmula médica. Adjuntá la prescripción antes de continuar.`,
+      ? 'Uno de los medicamentos del pedido es de venta bajo fórmula médica. Adjunta la prescripción antes de continuar.'
+      : `${medicationIds.length} medicamentos del pedido son de venta bajo fórmula médica. Adjunta la prescripción antes de continuar.`,
   medicationIds,
 });
 

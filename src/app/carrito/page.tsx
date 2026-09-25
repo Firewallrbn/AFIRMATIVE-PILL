@@ -78,7 +78,7 @@ export default function CartPage() {
       <Shell>
         <div className="rounded-3xl border border-line bg-surface p-12 text-center">
           <h1 className="text-2xl font-bold text-ink">Tu carrito está vacío</h1>
-          <p className="mt-2 text-ink-soft">Explorá el catálogo y agregá lo que necesites.</p>
+          <p className="mt-2 text-ink-soft">Explora el catálogo y agrega lo que necesites.</p>
           <Link
             href="/"
             className="mt-6 inline-block rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white hover:bg-brand-dark"
@@ -143,7 +143,7 @@ export default function CartPage() {
     <Shell>
       <h1 className="text-[32px] font-bold tracking-tight text-ink">Tu pedido</h1>
       <p className="mt-1.5 text-ink-soft">
-        Revisá las cantidades antes de confirmar. El inventario se reserva al emitir el pedido.
+        Revisa las cantidades antes de confirmar. El inventario se reserva al emitir el pedido.
       </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
@@ -203,7 +203,7 @@ export default function CartPage() {
               {hasPrescription ? (
                 <div className="mt-5 rounded-2xl border border-line bg-surface p-5">
                   <p className="text-sm font-semibold text-ok">
-                    ✓ Fórmula adjunta — pendiente de verificación farmacéutica
+                    ✓ Fórmula adjunta, pendiente de verificación farmacéutica
                   </p>
                   <dl className="mt-3 space-y-1 text-sm text-ink-soft">
                     <div>
@@ -283,7 +283,7 @@ export default function CartPage() {
 
             {blocked ? (
               <p className="mt-3 text-center text-[13px] text-rx">
-                Adjuntá la fórmula médica para habilitar la compra.
+                Adjunta la fórmula médica para habilitar la compra.
               </p>
             ) : null}
 

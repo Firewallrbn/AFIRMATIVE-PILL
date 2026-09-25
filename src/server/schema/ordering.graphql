@@ -215,7 +215,7 @@ input PlaceOrderInput {
   """
   Clave de idempotencia generada por el cliente. Dos envíos del mismo carrito con la
   misma clave producen UNA orden: protege contra el doble clic y contra el reintento
-  de red, que en un medicamento controlado sería una doble dispensación.
+  de red, que en un medicamento con fórmula médica sería entregarlo dos veces.
   """
   idempotencyKey: NonEmptyString!
 }

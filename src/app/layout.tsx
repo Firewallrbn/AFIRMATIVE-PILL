@@ -9,7 +9,7 @@ import { SiteFooter } from '@/components/site-footer';
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Afirmative Pill — Farmacia en línea',
+  title: 'Afirmative Pill | Farmacia en línea',
   description:
     'Catálogo de medicamentos con validación de fórmula médica y seguimiento de pedidos en tiempo real.',
 };

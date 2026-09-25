@@ -75,7 +75,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     return {
       orderId: null,
       errors: [
-        invalidState(cart.status, 'PLACE_ORDER', 'Este carrito ya fue procesado; abrí uno nuevo.'),
+        invalidState(cart.status, 'PLACE_ORDER', 'Este carrito ya fue procesado; abre uno nuevo.'),
       ],
     };
   }

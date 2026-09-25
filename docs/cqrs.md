@@ -28,7 +28,7 @@ elegir: cada lado tiene el modelo que le sirve.
 
 ## 2. El camino de escritura, paso a paso
 
-### `placeOrder` — el comando crítico
+### `placeOrder`: el comando crítico
 
 ```mermaid
 sequenceDiagram
@@ -87,8 +87,8 @@ sequenceDiagram
 **1. El evento va en la misma transacción que el estado.**
 Es el patrón *transactional outbox*. Si el commit falla no hay evento; si pasa, el evento
 existe. Es imposible que quede una orden sin su evento (proyección que nunca se actualiza)
-o un evento sin su orden (proyección de algo que no ocurrió). La alternativa —publicar a
-una cola después del commit— tiene una ventana donde el proceso puede morir entre las dos
+o un evento sin su orden (proyección de algo que no ocurrió). La alternativa (publicar a
+una cola después del commit) tiene una ventana donde el proceso puede morir entre las dos
 cosas.
 
 **2. La condición de stock vive dentro del UPDATE.**
@@ -113,15 +113,15 @@ await tx`select id from public.medications where id = any(${ids}) order by id fo
 
 Dos pedidos que compartan los medicamentos 7 y 12 los bloquean siempre en el mismo orden
 (7, después 12). Sin esto, un pedido podría tomar 7 y esperar 12 mientras el otro tiene 12
-y espera 7 — deadlock clásico, y Postgres mataría una de las dos transacciones al azar.
+y espera 7: deadlock clásico, y Postgres mataría una de las dos transacciones al azar.
 
 ### Idempotencia
 
 `orders.idempotency_key` tiene índice único y el cliente genera la clave una vez por
 intento de compra (vive en un `useRef`, no en estado). Un doble clic, un reintento del
 navegador o un retry de red reenvían la **misma** clave, y el handler devuelve la orden que
-ya creó. En un e-commerce común esto evita un cargo duplicado; acá evita una doble
-dispensación de un medicamento controlado.
+ya creó. En un e-commerce común esto evita un cargo duplicado; acá evita entregar dos
+veces un medicamento que exige fórmula médica.
 
 ---
 
@@ -156,7 +156,7 @@ misma pantalla necesitaría cuatro JOIN y una agregación.
 | Excepción | Dónde | Razón |
 |---|---|---|
 | `Query.cart` lee el write model | `command-side/resolvers.ts` | El carrito es el borrador privado del propio paciente y exige *read-your-writes*: si agrego un medicamento tengo que verlo ya. Proyectarlo agregaría latencia a cambio de nada. No tiene lectores concurrentes ni carga de consulta. |
-| `Query.order` cae al write model mientras la proyección está atrasada | `query-side/read-repositories/order-read-repository.ts` | Sin esto, entrar a "mi pedido" en el primer segundo devolvería `null` — "pedido no encontrado" justo después de comprar. El fallback devuelve el dato real marcado `SYNCING`. |
+| `Query.order` cae al write model mientras la proyección está atrasada | `query-side/read-repositories/order-read-repository.ts` | Sin esto, entrar a "mi pedido" en el primer segundo devolvería `null`, o sea "pedido no encontrado" justo después de comprar. El fallback devuelve el dato real marcado `SYNCING`. |
 
 Las dos están escritas donde se usan, con el razonamiento al lado. Una excepción escondida
 es deuda; una excepción documentada es una decisión.
@@ -221,7 +221,7 @@ where o.id = $1
 on conflict (order_id) do update set … projection_version = projection_version + 1
 ```
 
-Reprocesar el mismo evento dos veces no corrompe nada — solo incrementa `projection_version`
+Reprocesar el mismo evento dos veces no corrompe nada: solo incrementa `projection_version`
 de más. Con entrega *al menos una vez*, eso es exactamente la propiedad que se necesita.
 
 ---
@@ -267,7 +267,7 @@ sucesivas avanzaron.
 
 Vale marcarlo porque es donde la gente suele equivocarse: **el descuento de stock no es
 eventual**. Ocurre dentro de la transacción del comando, de forma inmediata y atómica. Lo
-eventual es la **proyección** de ese stock en el catálogo — el paciente puede ver "120
+eventual es la **proyección** de ese stock en el catálogo: el paciente puede ver "120
 disponibles" durante un segundo cuando ya quedan 118. Eso es aceptable para pintar una
 grilla, y deja de serlo en el momento de comprar, que es justo cuando el `UPDATE … WHERE
 stock >= cantidad` vuelve a mandar.

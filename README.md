@@ -8,12 +8,12 @@
 # Afirmative Pill
 
 E-commerce farmacéutico construido sobre **GraphQL + CQRS**, con Apollo Server, Next.js y
-Supabase (PostgreSQL). Taller de Arquitectura de Software — el enunciado completo está en
+Supabase (PostgreSQL). Taller de Arquitectura de Software. El enunciado completo está en
 [`docs/ENUNCIADO.md`](docs/ENUNCIADO.md).
 
 El problema que resuelve no es vender cosas por internet: es vender **medicamentos**. Eso
-impone dos reglas que el sistema no puede romper nunca — no se despacha un medicamento de
-control sin fórmula médica verificada, y no se vende inventario que no existe. Toda la
+impone dos reglas que el sistema no puede romper nunca: no se entrega un medicamento que
+exige fórmula médica sin haberla verificado, y no se vende inventario que no existe. Toda la
 arquitectura de este repositorio está ordenada alrededor de esas dos invariantes.
 
 | | |
@@ -59,7 +59,7 @@ filtro por fórmula médica y facetas por categoría terapéutica con su conteo.
 
 **Lo que hay que leer en el diagrama**: las flechas de lectura y las de escritura nunca
 tocan la misma tabla. El único puente entre los dos lados es el outbox `domain_events`, y
-ese puente es asíncrono — de ahí sale toda la consistencia eventual del sistema.
+ese puente es asíncrono: de ahí sale toda la consistencia eventual del sistema.
 
 ### Stack
 
@@ -68,7 +68,7 @@ ese puente es asíncrono — de ahí sale toda la consistencia eventual del sist
 | Frontend | Next.js 16 (App Router), React 19, Apollo Client 4, Tailwind CSS v4 |
 | Transporte | GraphQL sobre HTTP (queries/mutations) y SSE (subscriptions), ambos en `/graphql` |
 | Backend | Apollo Server 5 montado como Route Handler vía `@as-integrations/next` |
-| Batching | DataLoader — 9 loaders por request |
+| Batching | DataLoader, 9 loaders por request |
 | Persistencia | Supabase PostgreSQL, driver `postgres` (postgres.js) sobre el pooler |
 | Despliegue | Vercel (Fluid Compute, runtime Node.js) |
 
@@ -111,8 +111,8 @@ real ocurren en momentos distintos y los hace gente distinta.
 no importa Postgres, ni GraphQL, ni HTTP. Solo reglas:
 
 ```ts
-checkPrescription(lines, prescription)  // INVARIANTE 1 — control de fórmula médica
-checkStock(lines)                       // INVARIANTE 2 — disponibilidad de inventario
+checkPrescription(lines, prescription)  // INVARIANTE 1: control de fórmula médica
+checkStock(lines)                       // INVARIANTE 2: disponibilidad de inventario
 canTransition(from, to)                 // ciclo de vida legal de una orden
 ```
 
@@ -207,7 +207,7 @@ Log real del servidor con la query de arriba:
 [graphql] CatalogoAnidado resuelta con 4 consulta(s) SQL
 ```
 
-**42 → 4.** Y fijate en el `11`: son 20 medicamentos pero solo 11 categorías distintas. El
+**42 → 4.** Fíjate en el `11`: son 20 medicamentos pero solo 11 categorías distintas. El
 DataLoader además **deduplica** antes de agrupar, así que la consulta lleva 11 claves y no
 20.
 
@@ -233,7 +233,7 @@ DataLoader además **deduplica** antes de agrupar, así que la consulta lleva 11
    e-commerce de zapatos sería un bug; acá es un problema de salud.
 2. **La función de lote devuelve un arreglo del mismo tamaño y en el mismo orden** que las
    claves recibidas. Por eso todo pasa por `indexBy`/`groupBy` y jamás se devuelve directo
-   lo que vino de Postgres — Postgres no garantiza el orden y DataLoader lo exige.
+   lo que vino de Postgres, porque Postgres no garantiza el orden y DataLoader lo exige.
 
 ### Auditoría permanente
 
@@ -281,7 +281,7 @@ servidor GraphQL.
 ## Consistencia eventual
 
 > *"¿Qué ve el usuario mientras la orden está siendo validada o el stock se está
-> sincronizando?"* — la pregunta textual del enunciado.
+> sincronizando?"* (pregunta textual del enunciado).
 
 La respuesta de este sistema: **ve su pedido, y ve que todavía se está consolidando.** No
 se le esconde la latencia ni se le miente con un dato viejo presentado como definitivo.
@@ -312,7 +312,7 @@ type OrderProjection {
 ```
 
 `freshness` se calcula preguntándole al outbox si quedan eventos sin procesar para ese
-agregado — vía DataLoader, claro, así que cuesta una consulta para todas las órdenes de la
+agregado. Se hace con DataLoader, así que cuesta una consulta para todas las órdenes de la
 respuesta.
 
 ### Lo que ve el paciente
@@ -330,7 +330,7 @@ a los 2.5 s:                         freshness=UP_TO_DATE  version=1
 ```
 
 La variable `PROJECTION_DELAY_MS` (1200 ms por defecto) **exagera la ventana a propósito**
-para que sea visible en la sustentación. En producción iría en 0 — pero la ventana existe
+para que sea visible en la sustentación. En producción iría en 0, pero la ventana existe
 igual, y el diseño la contempla en vez de asumir que no está.
 
 ### Read-your-writes donde hace falta
@@ -392,7 +392,7 @@ Network: trae exactamente los campos pedidos y ninguno más.
 
 ## Modelo de datos
 
-### Write model — normalizado, fuente de verdad
+### Write model: normalizado, fuente de verdad
 
 ```
 laboratories        active_ingredients      categories
@@ -405,7 +405,7 @@ orders ─ order_items ──────┤
         stock_reservations ┘
 ```
 
-### Read model — desnormalizado, una tabla por pantalla
+### Read model: desnormalizado, una tabla por pantalla
 
 | Tabla | Sirve | Cómo |
 |---|---|---|
@@ -415,13 +415,13 @@ orders ─ order_items ──────┤
 ### Outbox
 
 `domain_events (aggregate_type, aggregate_id, event_type, payload, occurred_at, processed_at)`
-con **índice parcial** sobre lo no procesado — ocupa lo que ocupa la cola pendiente (casi
+con **índice parcial** sobre lo no procesado: ocupa lo que ocupa la cola pendiente (casi
 siempre vacía), no la historia completa.
 
 ### Índices
 
-- `GIN` sobre `search_vector` — búsqueda de texto en español, con acentos y raíces.
-- `GIN` con `gin_trgm_ops` sobre el nombre comercial — tolerante a subcadenas y typos.
+- `GIN` sobre `search_vector`: búsqueda de texto en español, con acentos y raíces.
+- `GIN` con `gin_trgm_ops` sobre el nombre comercial: tolerante a subcadenas y typos.
 - B-tree en **todas** las claves foráneas: Postgres no las indexa solo, y son exactamente
   las columnas que los DataLoaders consultan con `= ANY($1)`.
 - Índices parciales para `in_stock` y para el outbox pendiente.
@@ -514,7 +514,7 @@ vercel env add DIRECT_URL production
 vercel deploy --prod
 ```
 
-El proyecto se configura desde [`vercel.ts`](vercel.ts): runtime Node.js (nunca Edge — se
+El proyecto se configura desde [`vercel.ts`](vercel.ts): runtime Node.js (nunca Edge, porque se
 necesitan sockets TCP para Postgres) y `maxDuration` de 300 s para que los streams SSE de
 las subscriptions no se corten.
 

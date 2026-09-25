@@ -11,7 +11,7 @@ import { orderReadRepository } from '@/server/query-side/read-repositories/order
  * Fuente del evento: `LISTEN order_changed` de Postgres. El trigger sobre
  * `order_projection` emite `NOTIFY` cada vez que el projector escribe la proyección,
  * así que lo que llega al cliente no es "el comando se ejecutó" sino algo más fuerte:
- * "el read model ya está consistente y podés confiar en lo que vas a leer".
+ * "el read model ya está consistente y puedes confiar en lo que vas a leer".
  *
  * Transporte hacia el navegador: SSE por el mismo endpoint `/graphql` (ver
  * `src/app/graphql/route.ts`). Sin WebSocket, sin segundo puerto, sin REST.

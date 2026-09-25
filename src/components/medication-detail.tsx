@@ -124,7 +124,7 @@ export function MedicationDetailView({ id }: { id: string }) {
 
             <p className="mt-5 border-t border-line pt-5 text-[13px] leading-relaxed text-muted">
               El inventario se reserva de forma atómica al confirmar el pedido. Si otra
-              persona se lleva la última unidad mientras comprás, te lo decimos en ese
+              persona se lleva la última unidad mientras compras, te lo decimos en ese
               momento en lugar de aceptarte una orden que no podemos despachar.
             </p>
           </div>

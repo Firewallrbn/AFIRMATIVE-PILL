@@ -56,7 +56,7 @@ type Mutation {
   removeMedicationFromCart(input: RemoveMedicationFromCartInput!): CartPayload!
 
   """
-  Adjunta la fórmula médica que respalda los ítems de venta controlada.
+  Adjunta la fórmula médica que respalda los ítems que exigen fórmula médica.
   Es un comando propio y no un campo más de `placeOrder` porque en el negocio es un
   acto distinto: el paciente sube la receta antes y a veces mucho antes de pagar.
   """

@@ -78,10 +78,10 @@ export function Catalog() {
             Catálogo
           </p>
           <h2 className="mt-2 text-[32px] font-bold leading-tight tracking-tight text-ink">
-            Encontrá tu medicamento
+            Encuentra tu medicamento
           </h2>
           <p className="mt-1.5 max-w-xl text-[15px] text-ink-soft">
-            Buscá por nombre comercial, principio activo o categoría terapéutica.
+            Busca por nombre comercial, principio activo o categoría terapéutica.
           </p>
         </div>
 
@@ -235,7 +235,7 @@ export function Catalog() {
             <div className="rounded-2xl border border-line bg-surface p-10 text-center">
               <p className="font-semibold text-ink">Sin resultados</p>
               <p className="mt-1 text-sm text-muted">
-                Probá con el principio activo, por ejemplo &ldquo;paracetamol&rdquo;.
+                Prueba con el principio activo, por ejemplo &ldquo;paracetamol&rdquo;.
               </p>
             </div>
           ) : null}
