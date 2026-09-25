@@ -1,0 +1,58 @@
+%% Fuente del diagrama de arquitectura del README.
+%% Regenerar la imagen: npx -p @mermaid-js/mermaid-cli mmdc -i docs/arquitectura.mmd -o docs/arquitectura.png -s 2 -b white
+flowchart TB
+    subgraph browser["NAVEGADOR"]
+        direction LR
+        UI["React 19 · Next.js App Router<br/>catálogo · ficha · carrito · seguimiento"]
+        AC["Apollo Client 4<br/>ApolloProvider + InMemoryCache"]
+        UI <--> AC
+    end
+
+    subgraph server["SERVIDOR · Vercel Function (Node.js)"]
+        RH["/graphql — ÚNICO endpoint de red<br/>Apollo Server 5 · 9 DataLoaders nuevos por request"]
+
+        subgraph write["COMMAND SIDE · escritura"]
+            MR["Resolvers de Mutation"]
+            CH["Command handlers<br/>invariantes: receta · stock · ciclo de vida"]
+            MR --> CH
+        end
+
+        subgraph read["QUERY SIDE · lectura"]
+            QR["Resolvers de Query"]
+            DL["DataLoaders<br/>batch + caché por request"]
+            RR["Read repositories<br/>solo SELECT"]
+            QR --> DL --> RR
+        end
+
+        SUB["Subscription<br/>LISTEN order_changed"]
+        PRJ["Projector<br/>waitUntil() tras responder"]
+
+        RH --> MR
+        RH --> QR
+        RH --> SUB
+    end
+
+    subgraph db["SUPABASE · PostgreSQL"]
+        WM[("WRITE MODEL<br/>medications · carts · orders<br/>order_items · prescriptions")]
+        OB[("OUTBOX<br/>domain_events")]
+        RM[("READ MODEL<br/>medication_catalog_projection<br/>order_projection")]
+    end
+
+    AC -- "POST /graphql · queries y mutations" --> RH
+    SUB -. "SSE /graphql · push del nuevo estado" .-> AC
+
+    CH -- "BEGIN … COMMIT" --> WM
+    CH -- "evento en el mismo commit" --> OB
+    OB -- "drena" --> PRJ
+    PRJ -- "reconstruye" --> RM
+    RR -- "SELECT" --> RM
+    RM -. "trigger pg_notify" .-> SUB
+
+    style write fill:#fdf2e6,stroke:#9a4a07
+    style WM fill:#fdf2e6,stroke:#9a4a07
+    style read fill:#eaf0ff,stroke:#1554e8
+    style RM fill:#eaf0ff,stroke:#1554e8
+    style OB fill:#f4f7fb,stroke:#40536b
+    style browser fill:#ffffff,stroke:#dfe6ef
+    style server fill:#ffffff,stroke:#dfe6ef
+    style db fill:#ecfdf3,stroke:#3ecf8e

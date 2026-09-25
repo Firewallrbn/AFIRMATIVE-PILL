@@ -20,15 +20,15 @@ arquitectura de este repositorio está ordenada alrededor de esas dos invariante
 |---|---|
 | **Aplicación en vivo** | https://afirmative-pill.vercel.app |
 | **Endpoint GraphQL** | https://afirmative-pill.vercel.app/graphql |
-| **Repositorio** | https://github.com/Firewallrbn/AFIRMATIVE-PILL |
+
 
 ### Capturas
 
-**Inicio** — la portada presenta la farmacia y lleva al catálogo o al seguimiento de un pedido.
+**Inicio:** la portada presenta la farmacia y lleva al catálogo o al seguimiento de un pedido.
 
 ![Página de inicio de Afirmative Pill](docs/capturas/inicio.png)
 
-**Catálogo** — vista condensada (nombre, presentación, categoría y precio) con búsqueda,
+**Catálogo:** vista condensada (nombre, presentación, categoría y precio) con búsqueda,
 filtro por fórmula médica y facetas por categoría terapéutica con su conteo.
 
 ![Catálogo de medicamentos con filtros](docs/capturas/catalogo.png)
@@ -53,64 +53,9 @@ filtro por fórmula médica y facetas por categoría terapéutica con su conteo.
 
 ## Arquitectura
 
-```mermaid
-flowchart TB
-    subgraph browser["NAVEGADOR"]
-        UI["React 19 · Next.js App Router<br/>catálogo · ficha · carrito · seguimiento"]
-        AC["Apollo Client 4<br/>InMemoryCache normalizada"]
-        UI <--> AC
-    end
+![Diagrama de arquitectura: navegador, servidor GraphQL con lados de comando y consulta, y Supabase](docs/arquitectura.png)
 
-    AC -- "POST /graphql<br/>queries y mutations" --> RH
-    AC -- "SSE /graphql<br/>subscriptions" --> RH
-
-    subgraph server["SERVIDOR · Vercel Functions (Node.js)"]
-        RH["/graphql<br/>ÚNICO endpoint de red"]
-        AS["Apollo Server 5"]
-        CTX["Contexto por request<br/>= 9 DataLoaders nuevos"]
-        RH --> AS --> CTX
-
-        subgraph read["QUERY SIDE · lectura"]
-            QR["Resolvers de Query"]
-            DL["DataLoaders<br/>batch + caché por request"]
-            RR["Read repositories<br/>solo SELECT"]
-            QR --> DL --> RR
-        end
-
-        subgraph write["COMMAND SIDE · escritura"]
-            MR["Resolvers de Mutation"]
-            CH["Command handlers"]
-            INV["Invariantes del dominio<br/>receta · stock · ciclo de vida"]
-            MR --> CH --> INV
-        end
-
-        PRJ["Projector<br/>waitUntil() tras responder"]
-        SUB["Subscription<br/>LISTEN order_changed"]
-
-        AS --> QR
-        AS --> MR
-        AS --> SUB
-    end
-
-    subgraph db["SUPABASE · PostgreSQL"]
-        WM[("WRITE MODEL<br/>medications · carts · orders<br/>order_items · prescriptions<br/>stock_reservations")]
-        OB[("OUTBOX<br/>domain_events")]
-        RM[("READ MODEL<br/>medication_catalog_projection<br/>order_projection")]
-    end
-
-    RR -- "SELECT" --> RM
-    CH -- "BEGIN … COMMIT" --> WM
-    CH -- "evento en el mismo commit" --> OB
-    OB -- "drena" --> PRJ
-    PRJ -- "reconstruye" --> RM
-    RM -- "trigger pg_notify" --> SUB
-    SUB -- "push" --> AC
-
-    classDef readStyle fill:#eaf0ff,stroke:#1554e8
-    classDef writeStyle fill:#fdf2e6,stroke:#9a4a07
-    class read,RM readStyle
-    class write,WM writeStyle
-```
+<sub>Fuente del diagrama en Mermaid: [`docs/arquitectura.mmd`](docs/arquitectura.mmd).</sub>
 
 **Lo que hay que leer en el diagrama**: las flechas de lectura y las de escritura nunca
 tocan la misma tabla. El único puente entre los dos lados es el outbox `domain_events`, y
@@ -644,6 +589,7 @@ AFIRMATIVE-PILL/
 │   ├── ENUNCIADO.md                ← enunciado del taller
 │   ├── PLAN.md                     ← plan de trabajo y bitácora de decisiones
 │   ├── capturas/                   ← capturas de la aplicación
+│   ├── arquitectura.mmd / .png     ← diagrama de arquitectura (fuente e imagen)
 │   └── cqrs.md                     ← comandos, eventos, proyecciones
 ├── scripts/
 │   ├── build-schema.mjs            ← ensambla el SDL
