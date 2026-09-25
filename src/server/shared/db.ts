@@ -37,25 +37,79 @@ function connectionString(): string {
  * tiene un techo de conexiones compartido.
  */
 function createClient(url: string, max: number) {
-  return postgres(url, {
-    max,
-    idle_timeout: 20,
-    connect_timeout: 15,
-    prepare: false,
-    transform: { undefined: null },
-    debug(_connection, query) {
-      const scope = currentScope();
-      if (scope) scope.sqlCount += 1;
-      logger.debug(
-        { requestId: scope?.requestId, sql: compact(query) },
-        `  └─ SQL${scope ? ` #${scope.sqlCount}` : ''}`,
-      );
+  return instrument(
+    postgres(url, {
+      max,
+      idle_timeout: 20,
+      connect_timeout: 15,
+      prepare: false,
+      transform: { undefined: null },
+      // Solo registra el texto. NO cuenta: este hook corre cuando la consulta sale por el
+      // socket, y si en ese momento se está abriendo una conexión, corre en el contexto
+      // de quien la abrió — la consulta se le anotaría a otra operación (o a ninguna).
+      debug(_connection, query) {
+        const text = compact(query);
+        if (DRIVER_INTERNAL.test(text)) return;
+        logger.debug({ requestId: currentScope()?.requestId, sql: text }, '  └─ SQL');
+      },
+    }),
+  );
+}
+
+/** Consulta de tipos que postgres.js hace sola al abrir cada conexión. No es nuestra. */
+const DRIVER_INTERNAL = /^\s*select b\.oid, b\.typarray from pg_catalog\.pg_type/;
+
+function compact(query: string): string {
+  return query.replace(/\s+/g, ' ').trim().slice(0, 220);
+}
+
+type Client = ReturnType<typeof postgres>;
+
+/**
+ * Cuenta cada consulta en la operación que la pidió.
+ *
+ * postgres.js ejecuta una consulta la primera vez que alguien la espera (`await`,
+ * `.then`, `.execute`), y en todos esos casos pasa por `handle()`. Ese instante ocurre
+ * dentro del request que la pidió, así que `currentScope()` es el correcto. Los
+ * fragmentos que se interpolan dentro de otra consulta nunca se esperan: no suman.
+ *
+ * Las transacciones (`sql.begin`) reciben su propio cliente `tx`, que se instrumenta igual.
+ */
+function instrument<T extends Client>(client: T): T {
+  return new Proxy(client, {
+    apply(target, thisArg, args) {
+      return countOnRun(Reflect.apply(target, thisArg, args));
+    },
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== 'function') return value;
+      if (prop === 'unsafe') {
+        return (...args: unknown[]) => countOnRun(value.apply(target, args));
+      }
+      if (prop === 'begin') {
+        return (...args: unknown[]) => {
+          const callback = args[args.length - 1] as (tx: Client) => unknown;
+          args[args.length - 1] = (tx: Client) => callback(instrument(tx));
+          return value.apply(target, args);
+        };
+      }
+      return value.bind(target);
     },
   });
 }
 
-function compact(query: string): string {
-  return query.replace(/\s+/g, ' ').trim().slice(0, 220);
+function countOnRun<Q>(query: Q): Q {
+  const q = query as { handle?: () => unknown; executed?: boolean };
+  if (typeof q?.handle !== 'function') return query; // helpers como sql(ids): no son consultas
+  const handle = q.handle;
+  q.handle = function (this: typeof q) {
+    if (!this.executed) {
+      const scope = currentScope();
+      if (scope) scope.sqlCount += 1;
+    }
+    return handle.call(this);
+  };
+  return query;
 }
 
 export type Sql = ReturnType<typeof createClient>;
