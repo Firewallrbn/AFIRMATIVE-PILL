@@ -262,7 +262,7 @@ El enunciado prohíbe REST en el canal de clientes. Cómo se cumple y cómo se v
 ```bash
 # Auditoría reproducible
 find src/app -name "route.ts"                    # -> solo src/app/graphql/route.ts
-grep -rn "fetch(\|axios" src/app src/components src/lib | grep -v apollo   # -> vacío
+grep -rnE "(^|[^a-zA-Z])fetch\(|axios" src/app src/components src/lib --exclude-dir=apollo   # -> vacío
 ```
 
 Dos decisiones refuerzan la restricción más allá del mínimo:
