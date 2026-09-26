@@ -20,7 +20,15 @@ arquitectura de este repositorio está ordenada alrededor de esas dos invariante
 |---|---|
 | **Aplicación en vivo** | https://afirmative-pill.vercel.app |
 | **Endpoint GraphQL** | https://afirmative-pill.vercel.app/graphql |
+| **Video de sustentación** | https://youtu.be/IxdeM3JLDas |
 
+### Video de sustentación
+
+[![Video de sustentación de Afirmative Pill en YouTube](https://i.ytimg.com/vi/IxdeM3JLDas/hqdefault.jpg)](https://youtu.be/IxdeM3JLDas)
+
+Flujo completo (catálogo → selección → carrito → mutation de compra → orden proyectada),
+las llamadas a `/graphql` en DevTools ▸ Network y los logs de DataLoader agrupando las
+consultas a Supabase.
 
 ### Capturas
 
