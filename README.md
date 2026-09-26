@@ -484,6 +484,11 @@ dedicada de las subscriptions.
 > varias peticiones al mismo tiempo, algunas consultas quedan colgadas sin respuesta. Medido
 > aislando solo el driver: 23 de 36 consultas en paralelo colgadas en modo transacción, 0
 > de 36 en modo sesión.
+>
+> **Subir el *Pool Size* a 40** en Supabase ▸ Database Settings ▸ *Connection pooling*. En
+> modo sesión el máximo de clientes simultáneos es igual al Pool Size (15 por defecto), y
+> cada instancia de Vercel usa hasta 4 conexiones. Con 15, cuatro peticiones simultáneas ya
+> fallaban con `EMAXCONNSESSION`; con 40, 0 errores en 40 peticiones de a 5 en paralelo.
 
 > **Importante**: si la contraseña tiene `@ : / ? # [ ] %`, hay que codificarla en
 > porcentaje (`%` → `%25`). Y el puerto 5432 tiene que ser el del **pooler de sesión**, no
