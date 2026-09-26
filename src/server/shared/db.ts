@@ -21,7 +21,7 @@ function connectionString(): string {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      'Falta DATABASE_URL. Usar la cadena del pooler de Supabase en modo transacción (puerto 6543). ' +
+      'Falta DATABASE_URL. Usar la cadena del pooler de Supabase en modo sesión (puerto 5432). ' +
         'En local: `vercel env pull .env.local`.',
     );
   }
@@ -31,8 +31,9 @@ function connectionString(): string {
 /**
  * Cliente de Postgres contra Supabase.
  *
- * `prepare: false` es obligatorio: el pooler en modo transacción reparte la conexión
- * entre requests y los prepared statements con nombre se pierden entre una y otra.
+ * Va contra el pooler en modo SESIÓN (5432). El modo transacción (6543) deja consultas
+ * colgadas con postgres.js bajo concurrencia. `prepare: false` se mantiene por si se
+ * vuelve a un pooler en modo transacción, donde los prepared statements se pierden.
  * `max` bajo porque en Vercel cada instancia Fluid abre su propio pool y el proyecto
  * tiene un techo de conexiones compartido.
  */
@@ -137,9 +138,8 @@ export function db(): Sql {
 /**
  * Conexión dedicada para `LISTEN order_changed`, que alimenta las GraphQL Subscriptions.
  *
- * Va aparte y contra `DIRECT_URL` porque LISTEN necesita una sesión persistente: el
- * pooler en modo transacción devuelve la conexión al pool al terminar cada transacción
- * y con ella se perdería la suscripción al canal.
+ * Va aparte, contra `DIRECT_URL`, porque LISTEN necesita una conexión propia que quede
+ * abierta mientras dure la suscripción, sin mezclarse con las consultas de los requests.
  */
 export function listenerDb(): Sql {
   if (!globalForDb.__afirmativePillListener) {

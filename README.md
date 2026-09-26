@@ -470,14 +470,20 @@ npm install
 Copiar [`.env.example`](.env.example) a `.env.local` y completar:
 
 ```bash
-DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres"
+DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres"
 DIRECT_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres"
 PROJECTION_DELAY_MS=1200
 LOG_LEVEL=debug
 ```
 
-Las dos cadenas salen del botón **Connect** del dashboard de Supabase: `DATABASE_URL` de la
-pestaña *Transaction pooler* (6543) y `DIRECT_URL` de *Session pooler* (5432).
+Las dos cadenas son la misma: la del botón **Connect** del dashboard de Supabase, pestaña
+*Session pooler* (puerto 5432). `DIRECT_URL` se usa para las migraciones y para la conexión
+dedicada de las subscriptions.
+
+> **No usar el *Transaction pooler* (6543).** Con el driver `postgres.js`, cuando llegan
+> varias peticiones al mismo tiempo, algunas consultas quedan colgadas sin respuesta. Medido
+> aislando solo el driver: 23 de 36 consultas en paralelo colgadas en modo transacción, 0
+> de 36 en modo sesión.
 
 > **Importante**: si la contraseña tiene `@ : / ? # [ ] %`, hay que codificarla en
 > porcentaje (`%` → `%25`). Y el puerto 5432 tiene que ser el del **pooler de sesión**, no
@@ -580,7 +586,8 @@ Con `LOG_LEVEL=debug`, cada lote y cada operación quedan en la consola del serv
 | **Outbox y no Event Sourcing completo** | El taller evalúa la segregación y el manejo de la consistencia eventual, no el event store. El outbox da consistencia eventual real y observable sin el costo de reconstruir estado desde eventos. |
 | **Transacción en TypeScript y no en PL/pgSQL** | Las invariantes quedan en un módulo de dominio testeable sin base de datos, en vez de repartidas entre SQL y aplicación. La atomicidad es la misma: vive en el `UPDATE … WHERE stock >= cantidad`. |
 | **Carrito como agregado del servidor** | El enunciado nombra "creación de carritos" y "adición de medicamentos" como comandos de dominio. Guardarlo en el navegador habría creado dos verdades y ninguna confiable. |
-| **`prepare: false` en el driver** | Obligatorio con el pooler en modo transacción: la conexión se reparte entre requests y los prepared statements con nombre se pierden. |
+| **Pooler en modo sesión (5432), no transacción (6543)** | El modo transacción es el recomendado para serverless, pero con `postgres.js` deja consultas colgadas bajo concurrencia (23 de 36 en la prueba aislada). El modo sesión no falla (0 de 36). El costo es que cada instancia de Vercel ocupa hasta 3 conexiones fijas (`PG_POOL_MAX`), algo aceptable para el tráfico del proyecto. |
+| **`prepare: false` en el driver** | Se mantiene para que el código siga funcionando si algún día se vuelve a un pooler en modo transacción, donde los prepared statements con nombre se pierden entre requests. |
 | **RLS activa sin políticas** | Deny-all deliberado. El acceso es exclusivamente por el servidor GraphQL con rol privilegiado; las claves públicas de Supabase no leen nada. Esto aparece como aviso INFO en el linter de Supabase y es intencional. |
 
 ---
